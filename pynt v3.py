@@ -65,18 +65,18 @@ class smallButton:
         self.width = width
         self.height = height
 
-#And here's the clickcheck routine. It checks if a given button
-#has been left-clicked. It returns True if it has, and False if it hasn't.
+#And here's the clickcheck routine. It checks if the mouse position
+#corresponds to any button. It returns True if it does, and False if it doesn't.
 def clickcheck(button):
     x = button.x
     y = button.y
     width = button.width
     height = button.height
-    if pygame.mouse.get_pressed(num_buttons=3)[0]:
-        if ((mx > x and mx < x + width) and (my > y and my < y + height)):
-            return True
-        elif ((mx > x and mx < x + width) and (my > y and my < y + height)):
-            return False
+
+    if ((x < mx < x + width) and (y < my < y + height)):
+        return True
+    else:
+        return False
 
 def effective_mouse_pos(mx: int, my: int):
     return (mx - 42, my - 40)
@@ -92,6 +92,7 @@ paintred = smallButton(5, 230, 32, 32)
 paintyellow = smallButton(5, 267, 32, 32)
 paintblue = smallButton(5, 304, 32, 32)
 paintmystery = smallButton(5, 341, 32, 32)
+
 # --- gameloop! ---
 #
 #This is where the program actually runs.
@@ -100,8 +101,17 @@ while running:
     #blank UI layer
     screen.fill((200, 200, 200))
 
-    #get mouse data
+    # Store mouse position in two separate variables
     mx, my = pygame.mouse.get_pos()
+
+    # Reset mouse variables
+    mbtnUp = 0
+    mbtnDwn = 0
+    mouseOnCanvas = False
+
+    # Check if mouse is in canvas
+    if 42 < mx < 598 and 40 < my < 440:
+        mouseOnCanvas = True
 
     #frame delay
     pygame.time.delay(1)
@@ -110,10 +120,16 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        # Check if a mouse button was released and if so, store the button number in a variable
+        elif event.type == pygame.MOUSEBUTTONUP:
+            mbtnUp = event.button
+        # Do the same for mouse button presses
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mbtnDwn = event.button
+			
 
-    #check keys and mouse buttons being pressed
+    #check keys being pressed
     keys = pygame.key.get_pressed()
-    mbtn = pygame.mouse.get_pressed()
 
     #let's draw some icons :3
     screen.blit(brush_sml, (5, 45))
@@ -146,7 +162,8 @@ while running:
         #sets large
     #for dot color
 
-    if keys[pygame.K_LCTRL]:
+    # Color picker functionality
+    if keys[pygame.K_LCTRL] and mbtnDwn == 1 and mouseOnCanvas == True:
         wantedcolor = canvas.get_at(effective_mouse_pos(mx, my))
 
     if wantedcolor != mysterycolor:
@@ -177,41 +194,43 @@ while running:
         canvas.fill(white)
 
     # - detect mouse presses -
-    if clickcheck(brushsmall) == True:
-        size = 2
-        oldsize = 2
-        dotcolor = wantedcolor
+    if mbtnUp == 1 and mouseOnCanvas == False:
+        
+        if clickcheck(brushsmall) == True:
+            size = 2
+            oldsize = 2
+            dotcolor = wantedcolor
 
-    if clickcheck(brushmed) == True:
-        size = 3
-        oldsize = 3
-        dotcolor = wantedcolor
+        elif clickcheck(brushmed) == True:
+            size = 3
+            oldsize = 3
+            dotcolor = wantedcolor
 
-    if clickcheck(brushlarge) == True:
-        size = 5
-        oldsize = 5
-        dotcolor = wantedcolor
+        elif clickcheck(brushlarge) == True:
+            size = 5
+            oldsize = 5
+            dotcolor = wantedcolor
 
-    if clickcheck(paintblack) == True:
-        wantedcolor = black
+        elif clickcheck(paintblack) == True:
+            wantedcolor = black
 
-    if clickcheck(paintwhite) == True:
-        wantedcolor = white
+        elif clickcheck(paintwhite) == True:
+            wantedcolor = white
 
-    if clickcheck(paintred) == True:
-        wantedcolor = red
+        elif clickcheck(paintred) == True:
+            wantedcolor = red
 
-    if clickcheck(paintyellow) == True:
-        wantedcolor = yellow
+        elif clickcheck(paintyellow) == True:
+            wantedcolor = yellow
 
-    if clickcheck(paintblue) == True:
-        wantedcolor = blue
+        elif clickcheck(paintblue) == True:
+            wantedcolor = blue
 
-    if clickcheck(paintmystery) == True:
-        if colorgen == False: #This basically makes it so that the mystery color doesn't regenerate after every frame, only when you first switch to Mystery
-            mysterycolor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
-            colorgen = True
-        wantedcolor = mysterycolor
+        elif clickcheck(paintmystery) == True:
+            if colorgen == False: #This basically makes it so that the mystery color doesn't regenerate after every frame, only when you first switch to Mystery
+                mysterycolor = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 255)
+                colorgen = True
+            wantedcolor = mysterycolor
 
     if pygame.mouse.get_pressed(num_buttons=3)[0]:
         #this offset is because the canvas surface is offset from the screen overall
@@ -261,15 +280,19 @@ while running:
     pygame.draw.rect(screen, blue, (9, 308, 24, 24))
     screen.blit(mystery_icon, (5, 341)) #mystery question mark
 
-    #draw brush outline for visibility
-    pygame.draw.circle(screen, red, (mx, my), (size + 2), 2)
-    pygame.draw.circle(screen, white, (mx, my), (size + 3), 2)
-    pygame.draw.circle(screen, wantedcolor, (mx, my), (size + 1), 3)
+    # Draw cursor only if it's in the window
+    if pygame.mouse.get_focused() == True:
+        # Draw brush outline for visibility, only if the mouse is in canvas
+        if mouseOnCanvas == True:
+            pygame.draw.circle(screen, red, (mx, my), (size + 2), 2)
+            pygame.draw.circle(screen, white, (mx, my), (size + 3), 2)
+            pygame.draw.circle(screen, wantedcolor, (mx, my), (size + 1), 3)
+
+        screen.blit(cursor, (mx, my)) #draws custom cursor
 
     #reset size to the intended one after using the eraser
     size = oldsize
 
-    screen.blit(cursor, (mx, my)) #draws custom cursor
     pygame.display.flip() #displays the frame
 
 pygame.quit() #quits program when the loop is broken
